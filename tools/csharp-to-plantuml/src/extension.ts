@@ -37,6 +37,8 @@ export function activate(context: vscode.ExtensionContext) {
 		const createAssociation = conf.get('csharp2plantuml.createAssociation') as boolean;
 		const allInOne = conf.get('csharp2plantuml.allInOne') as boolean;
 		const input = pathJoin(wsroot, inputPath);
+		const ignoreAccessibilityTypes = conf.get('csharp2plantuml.ignoreAccessibilityTypes') as string;
+		const ignoreAccessibilityTypesStartWith = conf.get('csharp2plantuml.ignoreAccessibilityTypesStartWith') as string;
 
 		var command = `dotnet "${tool}" "${input}"`;
 		if (outputPath !== "") {
@@ -57,6 +59,13 @@ export function activate(context: vscode.ExtensionContext) {
 		if (allInOne) {
 			command += " -allInOne";
 		}
+		if(ignoreAccessibilityTypes !== "") {
+			command += ` -ignoreTypes "${ignoreAccessibilityTypes}"`;
+		}
+		if(ignoreAccessibilityTypesStartWith !== "") {
+			command += ` -ignoreTypesStartWith "${ignoreAccessibilityTypesStartWith}"`;
+		}
+
 
 		outputchannel.appendLine("[exec] " + command);
 		exec(command, (error, stdout, stderror) => {

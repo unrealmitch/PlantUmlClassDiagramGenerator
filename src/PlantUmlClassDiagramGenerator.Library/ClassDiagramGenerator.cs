@@ -19,6 +19,8 @@ namespace PlantUmlClassDiagramGenerator.Library
         private readonly string indent;
         private int nestingDepth = 0;
         private readonly bool createAssociation;
+        private readonly string[] ignoreTypesStartWith;
+        private readonly string[] ignoreTypes;
 
         private readonly Dictionary<string, string> escapeDictionary = new Dictionary<string, string>
         {
@@ -26,13 +28,16 @@ namespace PlantUmlClassDiagramGenerator.Library
             {@"(?<before>[^}])}(?<after>[^}])", "${before}&#125;${after}"},
         };
 
-        public ClassDiagramGenerator(TextWriter writer, string indent, Accessibilities ignoreMemberAccessibilities = Accessibilities.None, bool createAssociation = true)
+        public ClassDiagramGenerator(TextWriter writer, string indent, Accessibilities ignoreMemberAccessibilities = Accessibilities.None, bool createAssociation = true,
+                                    string[] ignoreTypes = null, string[] ignoreTypesStartWith = null)
         {
             this.writer = writer;
             this.indent = indent;
             additionalTypeDeclarationNodes = new List<SyntaxNode>();
             this.ignoreMemberAccessibilities = ignoreMemberAccessibilities;
             this.createAssociation = createAssociation;
+            this.ignoreTypes = ignoreTypes;
+            this.ignoreTypesStartWith = ignoreTypesStartWith;
         }
 
         public void Generate(SyntaxNode root)
@@ -62,7 +67,7 @@ namespace PlantUmlClassDiagramGenerator.Library
         public override void VisitRecordDeclaration(RecordDeclarationSyntax node)
         {
             // Code copied from: VisitTypeDeclaration
-            
+
             if (SkipInnerTypeDeclaration(node)) { return; }
 
             relationships.AddInnerclassRelationFrom(node);
@@ -84,7 +89,7 @@ namespace PlantUmlClassDiagramGenerator.Library
 
             nestingDepth++;
 
-            foreach(var parameter in node.ParameterList.Parameters)
+            foreach (var parameter in node.ParameterList.Parameters)
             {
                 // Code copied from "VisitPropertyDeclaration":
 
@@ -94,7 +99,7 @@ namespace PlantUmlClassDiagramGenerator.Library
                 var isTypeParameterProp = parentClass?.TypeParameterList?.Parameters
                     .Any(t => t.Identifier.Text == type.ToString()) ?? false;
 
-                if (!createAssociation || parameterType.GetType() == typeof(PredefinedTypeSyntax) || parameterType.GetType() == typeof(NullableTypeSyntax) || isTypeParameterProp)
+                if (!createAssociation || parameterType.GetType() == typeof(PredefinedTypeSyntax) || parameterType.GetType() == typeof(NullableTypeSyntax) || isTypeParameterProp || IgnoreAssociationType(parameterType.ToString()))
                 {
                     // ParameterList-Property: always public
                     var parameterModifiers = "+ ";
@@ -103,8 +108,8 @@ namespace PlantUmlClassDiagramGenerator.Library
                     // ParameterList-Property always have get and init accessor
                     var accessorStr = "<<get>> <<init>>";
 
-                    
-                    var useLiteralInit = 
+
+                    var useLiteralInit =
                         //node.Initializer?.Value?.Kind().ToString().EndsWith("LiteralExpression") ?? false;
                         parameter.Default?.Value is not null;
                     var initValue = useLiteralInit
@@ -193,10 +198,11 @@ namespace PlantUmlClassDiagramGenerator.Library
             var isTypeParameterField = parentClass?.TypeParameterList?.Parameters
                 .Any(t => t.Identifier.Text == type.ToString()) ?? false;
 
+
             foreach (var field in variables)
             {
                 Type fieldType = type.GetType();
-                if (!createAssociation || fieldType == typeof(PredefinedTypeSyntax) || fieldType == typeof(NullableTypeSyntax) || isTypeParameterField)
+                if (!createAssociation || fieldType == typeof(PredefinedTypeSyntax) || fieldType == typeof(NullableTypeSyntax) || isTypeParameterField || IgnoreAssociationType(type.ToString()))
                 {
                     var useLiteralInit = field.Initializer?.Value?.Kind().ToString().EndsWith("LiteralExpression") ?? false;
                     var initValue = useLiteralInit
@@ -226,7 +232,7 @@ namespace PlantUmlClassDiagramGenerator.Library
             var isTypeParameterProp = parentClass?.TypeParameterList?.Parameters
                 .Any(t => t.Identifier.Text == type.ToString()) ?? false;
 
-            if (!createAssociation || type.GetType() == typeof(PredefinedTypeSyntax) || type.GetType() == typeof(NullableTypeSyntax) || isTypeParameterProp)
+            if (!createAssociation || type.GetType() == typeof(PredefinedTypeSyntax) || type.GetType() == typeof(NullableTypeSyntax) || IgnoreAssociationType(type.ToString()))
             {
                 var modifiers = GetMemberModifiersText(node.Modifiers);
                 var name = node.Identifier.ToString();
@@ -461,6 +467,22 @@ namespace PlantUmlClassDiagramGenerator.Library
                 result += " ";
             };
             return result;
+        }
+
+        private bool IgnoreAssociationType(string sType)
+        {
+            if (string.IsNullOrEmpty(sType))
+                return false;
+
+            if (ignoreTypesStartWith != null)
+                foreach (string startWith in ignoreTypesStartWith)
+                    if (sType.StartsWith(startWith))
+                        return true;
+
+            if (ignoreTypes != null)
+                return ignoreTypes.Contains(sType);
+
+            return false;
         }
     }
 

@@ -13,7 +13,7 @@
     <RepositoryType></RepositoryType>
     <PackageTags>plantuml</PackageTags>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>1.2.4.0</Version>
+    <Version>1.2.5.0</Version>
     <Authors>pierre3</Authors>
     <Company />
     <Product />

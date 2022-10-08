@@ -2,6 +2,10 @@
 
 Create class diagrams of PlantUML from C# source code.
 
+Fork from [DrPepperBianco](https://github.com/DrPepperBianco/PlantUmlClassDiagramGenerator) and [pierre3](https://github.com/pierre3/PlantUmlClassDiagramGenerator). \
+
+This version allow ignore some types in accessibility mode (include class fields of non-basic types as relations to these classes). *Useful for generic collections & Unity types (avoiding creating a lot of relations to this types).*
+
 ## Requirements
 
 - .NET Core SDK 2.1 or newer.
@@ -23,11 +27,20 @@ Create class diagrams of PlantUML from C# source code.
   Create object associations from references of fields and properites.
 - __csharp2plantuml.allInOne__  
   Copy the output of all diagrams to file include.puml (this allows a PlanUMLServer to render it).
+- __csharp2plantuml.ignoreAccessibilityTypes__  
+  List of types that will be ignored to create relation in accessibility mode. Separate with ';'.
+- __csharp2plantuml.ignoreAccessibilityTypesStartWith__  
+  List of types that start with this words that will be ignored to create relation in accessibility. Separate with ';' .\
+  **Default value**: *"List<, Dictionary<, SortedList<, Queue< , Stack<, Hashset<"*
 
 ## Known Issues
 
 
 ## Release Notes
+### 1.2.5
+- Updated to .NET6.0
+- Added config options to ignore specific members types to don't create as relation field in accessibility mode (specially for collections in C#)
+
 ### 1.2.4
 - Updated to .NET5.0
 

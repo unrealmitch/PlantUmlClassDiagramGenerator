@@ -12,6 +12,11 @@ namespace PlantUmlClassDiagramGenerator
 {
     class Program
     {
+
+        private static readonly string[] defaultIngoreTypesStartWith = {
+            "List<", "Dictionary<", "SortedList<", "Queue<" , "Stack<", "Hashset<"
+        };
+
         enum OptionType
         {
             Value,
@@ -25,7 +30,9 @@ namespace PlantUmlClassDiagramGenerator
             ["-ignore"] = OptionType.Value,
             ["-excludePaths"] = OptionType.Value,
             ["-createAssociation"] = OptionType.Switch,
-            ["-allInOne"] = OptionType.Switch
+            ["-allInOne"] = OptionType.Switch,
+            ["-ignoreTypes"] = OptionType.Value,
+            ["-ignoreTypesStartWith"] = OptionType.Value,
         };
 
         static int Main(string[] args)
@@ -82,10 +89,11 @@ namespace PlantUmlClassDiagramGenerator
                 var tree = CSharpSyntaxTree.ParseText(SourceText.From(stream));
                 var root = tree.GetRoot();
                 Accessibilities ignoreAcc = GetIgnoreAccessibilities(parameters);
+                (string[] types, string[] typesStartWith) = GetIgnoreTypesLists(parameters);
 
                 using var filestream = new FileStream(outputFileName, FileMode.Create, FileAccess.Write);
                 using var writer = new StreamWriter(filestream);
-                var gen = new ClassDiagramGenerator(writer, "    ", ignoreAcc, parameters.ContainsKey("-createAssociation"));
+                var gen = new ClassDiagramGenerator(writer, "    ", ignoreAcc, parameters.ContainsKey("-createAssociation"), types, typesStartWith);
                 gen.Generate(root);
             }
             catch (Exception e)
@@ -166,9 +174,12 @@ namespace PlantUmlClassDiagramGenerator
                         var root = tree.GetRoot();
                         Accessibilities ignoreAcc = GetIgnoreAccessibilities(parameters);
 
+                        (string[] types, string[] typesStartWith) = GetIgnoreTypesLists(parameters);
+
                         using var filestream = new FileStream(outputFile, FileMode.Create, FileAccess.Write);
                         using var writer = new StreamWriter(filestream);
-                        var gen = new ClassDiagramGenerator(writer, "    ", ignoreAcc, parameters.ContainsKey("-createAssociation"));
+                        var gen = new ClassDiagramGenerator(writer, "    ", ignoreAcc, parameters.ContainsKey("-createAssociation"), types, typesStartWith);
+
                         gen.Generate(root);
                     }
 
@@ -223,6 +234,20 @@ namespace PlantUmlClassDiagramGenerator
                 }
             }
             return ignoreAcc;
+        }
+
+        private static (string[] types, string[] typesStartWith) GetIgnoreTypesLists(Dictionary<string, string> parameters)
+        {
+            string[] _ignoreTypes = null;
+            string[] _ingoreTypesStartWith = defaultIngoreTypesStartWith;
+
+            if (parameters.ContainsKey("-ignoreTypes"))
+                _ignoreTypes = parameters["-ignoreTypes"].Split(";").Select(x => x.Trim()).ToArray();
+
+            if (parameters.ContainsKey("-ignoreTypesStartWith"))
+                _ingoreTypesStartWith = parameters["-ignoreTypesStartWith"].Split(";").Select(x => x.Trim()).ToArray();
+
+            return (_ignoreTypes, _ingoreTypesStartWith);
         }
 
         private static Dictionary<string, string> MakeParameters(string[] args)
